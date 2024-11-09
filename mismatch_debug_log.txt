@@ -1,0 +1,300 @@
+Tokens: tensor([892, 476, 255,  26, 188, 257, 233,   2])
+Tags: tensor([ 1,  1,  1,  1,  1, 11,  1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 40,  75,  62, 640, 112, 316, 317])
+Tags: tensor([1, 1, 1, 1, 6, 7])
+Token length: 7, Tag length: 6
+
+Tokens: tensor([ 40,  75,  62,  58,  68, 222,  72, 223])
+Tags: tensor([1, 1, 1, 1, 4, 5, 5])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 40,  75,  62, 637,  19, 222,  72, 789])
+Tags: tensor([1, 1, 1, 1, 4, 5, 5])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 57, 251, 653, 654,  75, 655, 112, 222,  72, 223])
+Tags: tensor([1, 1, 1, 1, 1, 1, 4, 5, 5])
+Token length: 10, Tag length: 9
+
+Tokens: tensor([224,   6,  40,   2, 115, 297,  13,  45])
+Tags: tensor([23,  1,  1, 16, 17,  1,  1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 24, 631, 432,  68,  62, 236,  19, 257,   2])
+Tags: tensor([1, 1, 1, 1, 1, 1, 1, 1])
+Token length: 9, Tag length: 8
+
+Tokens: tensor([892, 476, 255,  29,  30,  19, 233,   2])
+Tags: tensor([ 1,  1,  1,  1,  1, 11,  1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 24, 476, 255,  26, 126, 477, 103])
+Tags: tensor([1, 1, 1, 1, 1, 1])
+Token length: 7, Tag length: 6
+
+Tokens: tensor([ 10,  62, 376,  57, 807, 501, 112, 501,  75, 833])
+Tags: tensor([ 1,  1,  1,  1,  1, 18,  1,  4,  5])
+Token length: 10, Tag length: 9
+
+Tokens: tensor([ 24, 476, 255,  26,  27, 481, 176, 613])
+Tags: tensor([1, 1, 1, 1, 1, 1, 3])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 40,  72,  62,  93,  75, 131,  19, 721,  19,  62, 722])
+Tags: tensor([1, 1, 5, 1, 1, 5, 5, 5, 5, 5])
+Token length: 11, Tag length: 10
+
+Tokens: tensor([ 24, 122, 374, 861,  62, 289, 376,  45,  62, 362])
+Tags: tensor([1, 1, 1, 4, 1, 1, 1, 4, 5])
+Token length: 10, Tag length: 9
+
+Tokens: tensor([ 24, 631, 432,  68,  29, 780, 829,   8])
+Tags: tensor([1, 1, 1, 1, 8, 9, 1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([480,  93,  75, 131])
+Tags: tensor([4, 1, 1])
+Token length: 4, Tag length: 3
+
+Tokens: tensor([ 24, 122, 374, 861,  62, 289, 376,  45,  62, 362])
+Tags: tensor([1, 1, 1, 4, 1, 1, 1, 4, 5])
+Token length: 10, Tag length: 9
+
+Tokens: tensor([ 24, 631, 432,  68,  62, 236,  19, 257,   2])
+Tags: tensor([1, 1, 1, 1, 1, 1, 1, 1])
+Token length: 9, Tag length: 8
+
+Tokens: tensor([480,  93,  75, 131])
+Tags: tensor([4, 1, 1])
+Token length: 4, Tag length: 3
+
+Tokens: tensor([224,   6,  40,   2, 115, 297,  13,  45])
+Tags: tensor([23,  1,  1, 16, 17,  1,  1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 24, 476, 255,  26, 126, 477, 103])
+Tags: tensor([1, 1, 1, 1, 1, 1])
+Token length: 7, Tag length: 6
+
+Tokens: tensor([ 40,  75,  62, 640, 112, 316, 317])
+Tags: tensor([1, 1, 1, 1, 6, 7])
+Token length: 7, Tag length: 6
+
+Tokens: tensor([892, 476, 255,  26, 188, 257, 233,   2])
+Tags: tensor([ 1,  1,  1,  1,  1, 11,  1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 24, 476, 255,  26,  27, 481, 176, 613])
+Tags: tensor([1, 1, 1, 1, 1, 1, 3])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([892, 476, 255,  29,  30,  19, 233,   2])
+Tags: tensor([ 1,  1,  1,  1,  1, 11,  1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 40,  75,  62,  58,  68, 222,  72, 223])
+Tags: tensor([1, 1, 1, 1, 4, 5, 5])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 40,  75,  62, 637,  19, 222,  72, 789])
+Tags: tensor([1, 1, 1, 1, 4, 5, 5])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 24, 631, 432,  68,  29, 780, 829,   8])
+Tags: tensor([1, 1, 1, 1, 8, 9, 1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 10,  62, 376,  57, 807, 501, 112, 501,  75, 833])
+Tags: tensor([ 1,  1,  1,  1,  1, 18,  1,  4,  5])
+Token length: 10, Tag length: 9
+
+Tokens: tensor([ 40,  72,  62,  93,  75, 131,  19, 721,  19,  62, 722])
+Tags: tensor([1, 1, 5, 1, 1, 5, 5, 5, 5, 5])
+Token length: 11, Tag length: 10
+
+Tokens: tensor([ 57, 251, 653, 654,  75, 655, 112, 222,  72, 223])
+Tags: tensor([1, 1, 1, 1, 1, 1, 4, 5, 5])
+Token length: 10, Tag length: 9
+
+Tokens: tensor([ 24, 631, 432,  68,  62, 236,  19, 257,   2])
+Tags: tensor([1, 1, 1, 1, 1, 1, 1, 1])
+Token length: 9, Tag length: 8
+
+Tokens: tensor([ 40,  72,  62,  93,  75, 131,  19, 721,  19,  62, 722])
+Tags: tensor([1, 1, 5, 1, 1, 5, 5, 5, 5, 5])
+Token length: 11, Tag length: 10
+
+Tokens: tensor([ 57, 251, 653, 654,  75, 655, 112, 222,  72, 223])
+Tags: tensor([1, 1, 1, 1, 1, 1, 4, 5, 5])
+Token length: 10, Tag length: 9
+
+Tokens: tensor([ 40,  75,  62, 637,  19, 222,  72, 789])
+Tags: tensor([1, 1, 1, 1, 4, 5, 5])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 40,  75,  62,  58,  68, 222,  72, 223])
+Tags: tensor([1, 1, 1, 1, 4, 5, 5])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([892, 476, 255,  26, 188, 257, 233,   2])
+Tags: tensor([ 1,  1,  1,  1,  1, 11,  1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 24, 476, 255,  26,  27, 481, 176, 613])
+Tags: tensor([1, 1, 1, 1, 1, 1, 3])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 24, 122, 374, 861,  62, 289, 376,  45,  62, 362])
+Tags: tensor([1, 1, 1, 4, 1, 1, 1, 4, 5])
+Token length: 10, Tag length: 9
+
+Tokens: tensor([224,   6,  40,   2, 115, 297,  13,  45])
+Tags: tensor([23,  1,  1, 16, 17,  1,  1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([892, 476, 255,  29,  30,  19, 233,   2])
+Tags: tensor([ 1,  1,  1,  1,  1, 11,  1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 24, 631, 432,  68,  29, 780, 829,   8])
+Tags: tensor([1, 1, 1, 1, 8, 9, 1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 10,  62, 376,  57, 807, 501, 112, 501,  75, 833])
+Tags: tensor([ 1,  1,  1,  1,  1, 18,  1,  4,  5])
+Token length: 10, Tag length: 9
+
+Tokens: tensor([ 40,  75,  62, 640, 112, 316, 317])
+Tags: tensor([1, 1, 1, 1, 6, 7])
+Token length: 7, Tag length: 6
+
+Tokens: tensor([480,  93,  75, 131])
+Tags: tensor([4, 1, 1])
+Token length: 4, Tag length: 3
+
+Tokens: tensor([ 24, 476, 255,  26, 126, 477, 103])
+Tags: tensor([1, 1, 1, 1, 1, 1])
+Token length: 7, Tag length: 6
+
+Tokens: tensor([ 24, 476, 255,  26,  27, 481, 176, 613])
+Tags: tensor([1, 1, 1, 1, 1, 1, 3])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 10,  62, 376,  57, 807, 501, 112, 501,  75, 833])
+Tags: tensor([ 1,  1,  1,  1,  1, 18,  1,  4,  5])
+Token length: 10, Tag length: 9
+
+Tokens: tensor([892, 476, 255,  26, 188, 257, 233,   2])
+Tags: tensor([ 1,  1,  1,  1,  1, 11,  1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 24, 476, 255,  26, 126, 477, 103])
+Tags: tensor([1, 1, 1, 1, 1, 1])
+Token length: 7, Tag length: 6
+
+Tokens: tensor([224,   6,  40,   2, 115, 297,  13,  45])
+Tags: tensor([23,  1,  1, 16, 17,  1,  1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([892, 476, 255,  29,  30,  19, 233,   2])
+Tags: tensor([ 1,  1,  1,  1,  1, 11,  1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([480,  93,  75, 131])
+Tags: tensor([4, 1, 1])
+Token length: 4, Tag length: 3
+
+Tokens: tensor([ 40,  75,  62,  58,  68, 222,  72, 223])
+Tags: tensor([1, 1, 1, 1, 4, 5, 5])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 24, 122, 374, 861,  62, 289, 376,  45,  62, 362])
+Tags: tensor([1, 1, 1, 4, 1, 1, 1, 4, 5])
+Token length: 10, Tag length: 9
+
+Tokens: tensor([ 40,  72,  62,  93,  75, 131,  19, 721,  19,  62, 722])
+Tags: tensor([1, 1, 5, 1, 1, 5, 5, 5, 5, 5])
+Token length: 11, Tag length: 10
+
+Tokens: tensor([ 57, 251, 653, 654,  75, 655, 112, 222,  72, 223])
+Tags: tensor([1, 1, 1, 1, 1, 1, 4, 5, 5])
+Token length: 10, Tag length: 9
+
+Tokens: tensor([ 24, 631, 432,  68,  29, 780, 829,   8])
+Tags: tensor([1, 1, 1, 1, 8, 9, 1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 40,  75,  62, 640, 112, 316, 317])
+Tags: tensor([1, 1, 1, 1, 6, 7])
+Token length: 7, Tag length: 6
+
+Tokens: tensor([ 40,  75,  62, 637,  19, 222,  72, 789])
+Tags: tensor([1, 1, 1, 1, 4, 5, 5])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 24, 631, 432,  68,  62, 236,  19, 257,   2])
+Tags: tensor([1, 1, 1, 1, 1, 1, 1, 1])
+Token length: 9, Tag length: 8
+
+Tokens: tensor([224,   6,  40,   2, 115, 297,  13,  45])
+Tags: tensor([23,  1,  1, 16, 17,  1,  1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([892, 476, 255,  29,  30,  19, 233,   2])
+Tags: tensor([ 1,  1,  1,  1,  1, 11,  1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 10,  62, 376,  57, 807, 501, 112, 501,  75, 833])
+Tags: tensor([ 1,  1,  1,  1,  1, 18,  1,  4,  5])
+Token length: 10, Tag length: 9
+
+Tokens: tensor([892, 476, 255,  26, 188, 257, 233,   2])
+Tags: tensor([ 1,  1,  1,  1,  1, 11,  1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 24, 476, 255,  26,  27, 481, 176, 613])
+Tags: tensor([1, 1, 1, 1, 1, 1, 3])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([480,  93,  75, 131])
+Tags: tensor([4, 1, 1])
+Token length: 4, Tag length: 3
+
+Tokens: tensor([ 40,  75,  62,  58,  68, 222,  72, 223])
+Tags: tensor([1, 1, 1, 1, 4, 5, 5])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 40,  72,  62,  93,  75, 131,  19, 721,  19,  62, 722])
+Tags: tensor([1, 1, 5, 1, 1, 5, 5, 5, 5, 5])
+Token length: 11, Tag length: 10
+
+Tokens: tensor([ 24, 631, 432,  68,  29, 780, 829,   8])
+Tags: tensor([1, 1, 1, 1, 8, 9, 1])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 40,  75,  62, 640, 112, 316, 317])
+Tags: tensor([1, 1, 1, 1, 6, 7])
+Token length: 7, Tag length: 6
+
+Tokens: tensor([ 57, 251, 653, 654,  75, 655, 112, 222,  72, 223])
+Tags: tensor([1, 1, 1, 1, 1, 1, 4, 5, 5])
+Token length: 10, Tag length: 9
+
+Tokens: tensor([ 40,  75,  62, 637,  19, 222,  72, 789])
+Tags: tensor([1, 1, 1, 1, 4, 5, 5])
+Token length: 8, Tag length: 7
+
+Tokens: tensor([ 24, 631, 432,  68,  62, 236,  19, 257,   2])
+Tags: tensor([1, 1, 1, 1, 1, 1, 1, 1])
+Token length: 9, Tag length: 8
+
+Tokens: tensor([ 24, 476, 255,  26, 126, 477, 103])
+Tags: tensor([1, 1, 1, 1, 1, 1])
+Token length: 7, Tag length: 6
+
+Tokens: tensor([ 24, 122, 374, 861,  62, 289, 376,  45,  62, 362])
+Tags: tensor([1, 1, 1, 4, 1, 1, 1, 4, 5])
+Token length: 10, Tag length: 9
+

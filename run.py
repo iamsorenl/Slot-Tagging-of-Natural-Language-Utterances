@@ -29,14 +29,22 @@ def collate_fn(batch, train_dataset):
 
     # Counter to track how often 'O' tags are added
     o_tag_insertions = 0
+    mismatch_cases = []  # To store mismatch details for further inspection
 
     # Handle length mismatches by adding 'O' tags if necessary
     for i in range(len(token_ids)):
         if len(token_ids[i]) != len(tag_ids[i]):
-            print(f"Warning: Length mismatch at index {i} - tokens ({len(token_ids[i])}) vs tags ({len(tag_ids[i])})")
+            # Log detailed information
+            print(f"\n--- Warning: Length mismatch at index {i} ---")
+            print(f"Tokens: {token_ids[i]}")
+            print(f"Tags: {tag_ids[i]}")
+            print(f"Token length: {len(token_ids[i])}, Tag length: {len(tag_ids[i])}")
+            mismatch_cases.append((token_ids[i], tag_ids[i]))
+
             if len(token_ids[i]) > len(tag_ids[i]):
                 mismatch_count = len(token_ids[i]) - len(tag_ids[i])
-                tag_ids[i] += [o_tag_index] * mismatch_count
+                # Convert tag_ids[i] to a list and extend with 'O' tags, then convert back to a tensor
+                tag_ids[i] = torch.cat([tag_ids[i], torch.tensor([o_tag_index] * mismatch_count, dtype=torch.long)])
                 o_tag_insertions += mismatch_count
 
     # Pad sequences with `<PAD>` token
@@ -45,7 +53,17 @@ def collate_fn(batch, train_dataset):
 
     # Report the number of 'O' tag insertions
     if o_tag_insertions > 0:
-        print(f"Total 'O' tag insertions in this batch: {o_tag_insertions}")
+        print(f"\nTotal 'O' tag insertions in this batch: {o_tag_insertions}")
+
+    # Optional: Save mismatch cases to inspect later if necessary
+    # This could be written to a file or used in further analysis.
+    if mismatch_cases:
+        with open('mismatch_debug_log.txt', 'a') as log_file:
+            for tokens, tags in mismatch_cases:
+                log_file.write(f"Tokens: {tokens}\n")
+                log_file.write(f"Tags: {tags}\n")
+                log_file.write(f"Token length: {len(tokens)}, Tag length: {len(tags)}\n")
+                log_file.write("\n")
 
     return utterances_padded, tags_padded
 
@@ -74,7 +92,7 @@ def train_model(model, train_loader, val_loader, loss_fn, optimizer, num_epochs,
             outputs = model(token_ids)  # (batch_size, seq_len, tagset_size)
 
             # Debugging: Print shapes
-            print(f"outputs shape: {outputs.shape}, tag_ids shape: {tag_ids.shape}")
+            # print(f"outputs shape: {outputs.shape}, tag_ids shape: {tag_ids.shape}")
 
             # Reshape outputs and tag_ids for loss computation
             batch_size, seq_len, tagset_size = outputs.shape

@@ -4,10 +4,7 @@ import pandas as pd
 
 class POSDataset(Dataset):
     def __init__(self, dataframe, word_to_index=None, tag_to_index=None, max_seq_length=None, training=True):
-        """
-        Initialize the dataset with a DataFrame, word-to-index mapping, tag-to-index mapping, 
-        and an optional maximum sequence length for padding/truncation.
-        """
+        # Initialization code...
         self.dataframe = dataframe
         self.max_seq_length = max_seq_length
 
@@ -31,6 +28,7 @@ class POSDataset(Dataset):
                     if tag not in self.tag_to_index:
                         self.tag_to_index[tag] = len(self.tag_to_index)
         else:
+            # Ensure mappings are provided during validation/testing
             assert word_to_index is not None and tag_to_index is not None, "word_to_index and tag_to_index must be provided during validation/testing"
             self.word_to_index = word_to_index
             self.tag_to_index = tag_to_index
@@ -42,6 +40,12 @@ class POSDataset(Dataset):
         for _, row in self.dataframe.iterrows():
             tokens = row['utterances'].split()  # Tokenize the utterance
             tags = row['IOB Slot tags'].split()  # Split the IOB tags
+
+            # Log token and tag lengths
+            if len(tokens) != len(tags):
+                print(f"Length mismatch detected during dataset creation:")
+                print(f"Tokens: {tokens} (Length: {len(tokens)})")
+                print(f"Tags: {tags} (Length: {len(tags)})")
 
             # Convert tokens and tags to indices
             token_ids = [self.word_to_index.get(token, self.word_to_index['<UNK>']) for token in tokens]
