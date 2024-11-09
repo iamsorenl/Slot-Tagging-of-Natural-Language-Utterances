@@ -3,35 +3,51 @@ from torch.utils.data import Dataset
 import pandas as pd
 
 class POSDataset(Dataset):
-    def __init__(self, dataframe, word_to_index=None, tag_to_index=None, max_seq_length=None, training=True):
-        # Initialization code...
+    def __init__(self, dataframe, token_vocab=None, tag_vocab=None, training=True):
+        """
+        Initializes the dataset object for slot tagging of natural language utterances.
+        Args:
+            dataframe (pd.DataFrame): The dataframe containing the dataset with columns 'utterances' and 'IOB Slot tags'.
+            training (bool): Flag indicating whether the object is being initialized in training mode.
+            token_vocab (dict, optional): Predefined token vocabulary mapping tokens to indices. Required if not in training mode.
+            tag_vocab (dict, optional): Predefined tag vocabulary mapping tags to indices. Required if not in training mode.
+        Attributes:
+            self.dataframe (pd.DataFrame): The dataframe containing the dataset.
+            self.token_vocab (dict): The vocabulary mapping tokens to indices. Built from training data if in training mode.
+            self.tag_vocab (dict): The vocabulary mapping tags to indices. Built from training data if in training mode.
+            self.corpus_token_ids (list): List of PyTorch tensors containing token indices for each utterance.
+            self.corpus_tag_ids (list): List of PyTorch tensors containing tag indices for each utterance.
+        """
+        # Store the dataframe
         self.dataframe = dataframe
-        self.max_seq_length = max_seq_length
 
         # Build mappings if in training mode
         if training:
-            self.word_to_index = {'<PAD>': 0, '<UNK>': 1}
-            self.tag_to_index = {'<PAD>': 0}
+            self.token_vocab = {'<PAD>': 0, '<UNK>': 1}
+            self.tag_vocab = {'<PAD>': 0}
 
             # Build mappings from training data
             for _, row in self.dataframe.iterrows():
                 tokens = row['utterances'].split()  # Tokenization step
                 tags = row['IOB Slot tags'].split()  # Splitting IOB tags
 
-                # Populate word_to_index
+                # Populate token_vocab
                 for token in tokens:
-                    if token not in self.word_to_index:
-                        self.word_to_index[token] = len(self.word_to_index)
+                    if token not in self.token_vocab:
+                        self.token_vocab[token] = len(self.token_vocab)
 
-                # Populate tag_to_index
+                # Populate tag_vocab
                 for tag in tags:
-                    if tag not in self.tag_to_index:
-                        self.tag_to_index[tag] = len(self.tag_to_index)
+                    if tag not in self.tag_vocab:
+                        self.tag_vocab[tag] = len(self.tag_vocab)
+            
+            # Create inverse mappings for convenience
+            self.tag_vocab_inv = {idx: tag for tag, idx in self.tag_vocab.items()}
         else:
             # Ensure mappings are provided during validation/testing
-            assert word_to_index is not None and tag_to_index is not None, "word_to_index and tag_to_index must be provided during validation/testing"
-            self.word_to_index = word_to_index
-            self.tag_to_index = tag_to_index
+            assert token_vocab is not None and tag_vocab is not None
+            self.token_vocab = token_vocab
+            self.tag_vocab = tag_vocab
 
         # Preprocess and store the token and tag indices
         self.corpus_token_ids = []
@@ -39,25 +55,20 @@ class POSDataset(Dataset):
 
         for _, row in self.dataframe.iterrows():
             tokens = row['utterances'].split()  # Tokenize the utterance
-            tags = row['IOB Slot tags'].split()  # Split the IOB tags
 
-            # Log token and tag lengths
-            if len(tokens) != len(tags):
-                print(f"Length mismatch detected during dataset creation:")
-                print(f"Tokens: {tokens} (Length: {len(tokens)})")
-                print(f"Tags: {tags} (Length: {len(tags)})")
-
-            # Convert tokens and tags to indices
-            token_ids = [self.word_to_index.get(token, self.word_to_index['<UNK>']) for token in tokens]
-            tag_ids = [self.tag_to_index.get(tag, self.tag_to_index['<PAD>']) for tag in tags]
-
-            # Handle padding/truncation if max_seq_length is specified
-            if self.max_seq_length:
-                token_ids = token_ids[:self.max_seq_length] + [self.word_to_index['<PAD>']] * max(0, self.max_seq_length - len(token_ids))
-                tag_ids = tag_ids[:self.max_seq_length] + [self.tag_to_index['<PAD>']] * max(0, self.max_seq_length - len(tag_ids))
-
+            # Convert tokens to indices
+            token_ids = [self.token_vocab.get(token, self.token_vocab['<UNK>']) for token in tokens]
             self.corpus_token_ids.append(torch.tensor(token_ids, dtype=torch.long))
-            self.corpus_tag_ids.append(torch.tensor(tag_ids, dtype=torch.long))
+
+            # Check if 'IOB Slot tags' exists; if so, process tags, else append None
+            if 'IOB Slot tags' in row:
+                tags = row['IOB Slot tags'].split()  # Split the IOB tags
+                tag_ids = [self.tag_vocab.get(tag, self.tag_vocab['<PAD>']) for tag in tags]
+                self.corpus_tag_ids.append(torch.tensor(tag_ids, dtype=torch.long))
+            else:
+                # If 'IOB Slot tags' column is not present (e.g., during testing), append None
+                self.corpus_tag_ids.append(None)
+
 
     def __len__(self):
         """

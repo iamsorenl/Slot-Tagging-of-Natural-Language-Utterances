@@ -7,7 +7,6 @@ ID,utterances,IOB Slot tags
 6,who was the female lead in resident evil,O O O O O O B_movie I_movie
 7,who played guido in life is beautiful,O O B_char O B_movie I_movie I_movie
 8,who was the co-star in shoot to kill,O O O O O B_movie I_movie I_movie
-9,find the guy who plays charlie on charlie 's angels,O O O O O B_char O B_movie I_movie
 10,cast and crew of movie the campaign,O O O O O B_movie I_movie
 11,cast and crew of the campaign,O O O O B_movie I_movie
 12,who plays in the movie the campaign,O O O O O B_movie I_movie
@@ -20,11 +19,9 @@ ID,utterances,IOB Slot tags
 19,can i see the set list and cast for life is beautiful,O O O O O O O O O B_movie I_movie I_movie
 20,cast and crew of life is beautiful,O O O O B_movie I_movie I_movie
 21,show cast and crew for the movie life is beautiful,O O O O O O O B_movie I_movie I_movie
-22,what 's the cast for life is beautiful,O O O O B_movie I_movie I_movie
 23,who played in life is beautiful,O O O B_movie I_movie I_movie
 24,who played in life is beautiful,O O O B_movie I_movie I_movie
 25,who was in life is beautiful,O O O B_movie I_movie I_movie
-26,who were roberto benigni 's costars on life is beautiful,O O O O O O B_movie I_movie I_movie
 27,i am looking for the actor that played in pretty women,O O O O O O O O O B_movie I_movie
 28,star of troy,O O B_movie
 29,who played robin in batman forever,O O B_char O B_movie I_movie
@@ -61,7 +58,6 @@ ID,utterances,IOB Slot tags
 60,what actors were in dirty dancing,O O O O B_movie I_movie
 61,show me the actors in captain america,O O O O O B_movie I_movie
 62,show me gilda 's credits,O O B_movie O O
-63,i can 't remember the lead guy in the avengers,O O O B_movie O O O B_movie I_movie
 64,show cast list for the avergers,O O O O B_movie I_movie
 65,who plays nemo in finding nemo,O O B_char O B_movie B_movie
 66,find cast and crew for the movie finding nemo,O O O O O O O B_movie I_movie
@@ -611,9 +607,7 @@ ID,utterances,IOB Slot tags
 610,name the director of sleepless in seattle,O O O O B_movie I_movie I_movie
 611,find name of director of the movie platoon,O O O O O O O B_movie
 612,get me the name of who directed the master,O O B_movie O O O O B_movie I_movie
-613,what is the director 's name of lord of the rings,O O I_movie O O I_movie I_movie I_movie I_movie I_movie
 614,what is the name of the person who made et,O O O O O O O O O O
-615,rocky director 's name,B_movie O O
 616,what type of movie is gilda,O O O O O B_movie
 617,what types of movies does lionsgate produce,O O O O O B_producer O
 618,what kind of movie is black swan,O O O O O B_movie I_movie
@@ -701,7 +695,7 @@ ID,utterances,IOB Slot tags
 700,language of the film revanche,O O O O B_movie
 701,what language was aguirre wrath of god in,O O O B_movie I_movie I_movie I_movie O
 702,what language is passion of the christ in,O O O B_movie I_movie I_movie I_movie O
-703,i want to know in what language was ju on filmed,O O O O O O O O B_movie I-movie O
+703,i want to know in what language was ju on filmed,O O O O O O O O B_movie I_movie O
 704,i want to know the original language of ju on,O O O O O O O O B_movie I_movie
 705,tell me the language of ju on,O O O O O B_movie I_movie
 706,what language is ju on on,O O O B_movie I_movie O
@@ -825,7 +819,6 @@ ID,utterances,IOB Slot tags
 824,are there movies not rated g,O O O O O B_mpaa_rating
 825,i don 't want any g rated movies,O O O O O B_mpaa_rating O O
 826,can you find some drama movies,O O O O B_genre O
-827,i 'd like to watch something with drama,O O O O O O B_genre
 828,looking for a drama movie,O O O B_genre O
 829,show me a list of movies in english,O O O O O O O B_language
 830,show me english movies,O O B_language O
@@ -913,8 +906,6 @@ ID,utterances,IOB Slot tags
 912,find spanish movies,O B_language O
 913,find spanish movies,O B_language O
 914,get me spanish movies,O O B_language O
-915,I 'd like a list of spanish movies,O O O O O B_language O
-916,I 'd like to know some spanish movies,O O O O O B_language O
 917,i want only spanish movies,O O O B_language O
 918,i want to look up spanish movies,O O O O O B_language O
 919,list spanish movies,O B_language O
@@ -1021,7 +1012,6 @@ ID,utterances,IOB Slot tags
 1020,movie by dreamworks,O O B_producer
 1021,movie made by dreamworks,O O O B_producer
 1022,what movies are made by dreamworks,O O O O O B_producer
-1023,i 'm looking for the cost of some movies,O O O O O O O O
 1024,what movies did kevin costner direct,O O O B_director I_director O
 1025,dirty dancing movie,B_movie I_movie O
 1026,dirty dancing movie short cuts,B_movie I_movie O O O
@@ -1058,7 +1048,6 @@ ID,utterances,IOB Slot tags
 1057,life is beautiful,B_movie I_movie I_movie
 1058,run a search for life is beautiful,O O O O B_movie I_movie I_movie
 1059,show me life is beautiful information,O O B_movie I_movie I_movie O
-1060,what 's the synopsis of life is beatiful,O O O O B_movie I_movie I_movie
 1061,footloose,B_movie
 1062,show jason statham movies,O B_person I_person O
 1063,list statham 's movies,O B_person O O
@@ -1357,7 +1346,6 @@ ID,utterances,IOB Slot tags
 1356,movies with tom hanks,O O B_cast I_cast
 1357,show me tom hanks movies,O O B_person I_person O
 1358,show tom hanks movies,O B_person I_person O
-1359,tell me what movies tom hanks star in,O¬¥O O O B_cast I_cast O O
 1360,tom hanks movies,B_person I_person O
 1361,watch tom hanks,O B_cast I_cast
 1362,what other movies did tom hanks star in,O O O O B_cast I_cast O O
@@ -1492,7 +1480,6 @@ ID,utterances,IOB Slot tags
 1491,what movies has charles vidor directed,O O O B_director I_director O
 1492,what other movies die charles vidor direct,O O O O B_director I_director O
 1493,show me all movies by charles vidor,O O O O O B_director I_director
-1494,i 'd like to see foreign films,O O O O O O
 1495,search for foreign movies,O O O O
 1496,what are some universal pictures films,O O O B_producer O O
 1497,show me all the movies made by universal,O O O O O O O B_producer
@@ -1880,8 +1867,6 @@ ID,utterances,IOB Slot tags
 1879,get hungarian films,O B_country O
 1880,i want to watch a comedy made in hungary,O O O O O B_genre O O B_country
 1881,show me hungarian comedies,O O B_country B_genre
-1882,what 's the latest on brad pitt,O O O O B_person I_person
-1883,i 'm looking for a jason cortlund movie,O O O O B_director I_director O
 1884,show me the movie now forager,O O O O B_movie I_movie
 1885,what old movies are made by warner brothers,O O O O O O B_producer I_producer
 1886,i want to look up alfred hitchcock movies,O O O O O B_director I_director O

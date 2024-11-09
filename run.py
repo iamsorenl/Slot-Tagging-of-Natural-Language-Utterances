@@ -10,159 +10,134 @@ import torch.nn as nn
 import torch.optim as optim
 from sklearn.metrics import f1_score
 
-# Configuration Function
-def get_config():
-    return {
-        "embedding_dim": 100,
-        "hidden_dim": 128,
-        "batch_size": 32,
-        "learning_rate": 0.001,
-        "num_epochs": 5
-    }
-
+# collate token_ids and tag_ids to make mini-batches
 def collate_fn(batch, train_dataset):
+    # Separate sentences and tags
     token_ids = [item[0] for item in batch]
-    tag_ids = [item[1] for item in batch]
-    padding_value_token = train_dataset.word_to_index['<PAD>']
-    padding_value_tag = train_dataset.tag_to_index['<PAD>']
-    o_tag_index = train_dataset.tag_to_index.get('O', padding_value_tag)  # Use 'O' tag index if available, else fall back to padding
+    tag_ids = [item[1] for item in batch if item[1] is not None]  # Only keep non-None tag_ids
 
-    # Counter to track how often 'O' tags are added
-    o_tag_insertions = 0
-    mismatch_cases = []  # To store mismatch details for further inspection
+    # Pad sequences for token_ids
+    sentences_padded = pad_sequence(token_ids, batch_first=True, padding_value=train_dataset.token_vocab['<PAD>'])
+    
+    # Handle tags padding only if tag_ids are present
+    if tag_ids:
+        tags_padded = pad_sequence(tag_ids, batch_first=True, padding_value=train_dataset.tag_vocab['<PAD>'])
+    else:
+        tags_padded = None  # No tags for test data
 
-    # Handle length mismatches by adding 'O' tags if necessary
-    for i in range(len(token_ids)):
-        if len(token_ids[i]) != len(tag_ids[i]):
-            # Log detailed information
-            print(f"\n--- Warning: Length mismatch at index {i} ---")
-            print(f"Tokens: {token_ids[i]}")
-            print(f"Tags: {tag_ids[i]}")
-            print(f"Token length: {len(token_ids[i])}, Tag length: {len(tag_ids[i])}")
-            mismatch_cases.append((token_ids[i], tag_ids[i]))
-
-            if len(token_ids[i]) > len(tag_ids[i]):
-                mismatch_count = len(token_ids[i]) - len(tag_ids[i])
-                # Convert tag_ids[i] to a list and extend with 'O' tags, then convert back to a tensor
-                tag_ids[i] = torch.cat([tag_ids[i], torch.tensor([o_tag_index] * mismatch_count, dtype=torch.long)])
-                o_tag_insertions += mismatch_count
-
-    # Pad sequences with `<PAD>` token
-    utterances_padded = pad_sequence(token_ids, batch_first=True, padding_value=padding_value_token)
-    tags_padded = pad_sequence(tag_ids, batch_first=True, padding_value=padding_value_tag)
-
-    # Report the number of 'O' tag insertions
-    if o_tag_insertions > 0:
-        print(f"\nTotal 'O' tag insertions in this batch: {o_tag_insertions}")
-
-    # Optional: Save mismatch cases to inspect later if necessary
-    # This could be written to a file or used in further analysis.
-    if mismatch_cases:
-        with open('mismatch_debug_log.txt', 'a') as log_file:
-            for tokens, tags in mismatch_cases:
-                log_file.write(f"Tokens: {tokens}\n")
-                log_file.write(f"Tags: {tags}\n")
-                log_file.write(f"Token length: {len(tokens)}, Tag length: {len(tags)}\n")
-                log_file.write("\n")
-
-    return utterances_padded, tags_padded
+    return sentences_padded, tags_padded
 
 # Function to Split Data
 def split_data(train_data, val_size=0.2):
     return train_test_split(train_data, test_size=val_size, random_state=12, shuffle=True)
 
-# Function to Create Data Loaders
-def get_data_loaders(train_dataset, val_dataset, batch_size, collate_fn):
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=lambda batch: collate_fn(batch, train_dataset))
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=lambda batch: collate_fn(batch, train_dataset))
-    return train_loader, val_loader
-
-# Function to Initialize Model
-def initialize_model(vocab_size, tagset_size, embedding_dim, hidden_dim):
-    model = SeqTagger(vocab_size, tagset_size, embedding_dim, hidden_dim)
-    return model
-
-def train_model(model, train_loader, val_loader, loss_fn, optimizer, num_epochs, train_dataset):
-    for epoch in range(num_epochs):
-        # Training Phase
-        model.train()
-        total_train_loss = 0
-        for token_ids, tag_ids in train_loader:
-            optimizer.zero_grad()
-            outputs = model(token_ids)  # (batch_size, seq_len, tagset_size)
-
-            # Debugging: Print shapes
-            # print(f"outputs shape: {outputs.shape}, tag_ids shape: {tag_ids.shape}")
-
-            # Reshape outputs and tag_ids for loss computation
-            batch_size, seq_len, tagset_size = outputs.shape
-            outputs = outputs.view(batch_size * seq_len, tagset_size)
-            tag_ids = tag_ids.view(-1)
-
-            # Check if shapes match
-            assert outputs.shape[0] == tag_ids.shape[0], f"Shape mismatch: outputs {outputs.shape[0]} vs tag_ids {tag_ids.shape[0]}"
-
-            # Compute the loss
-            loss = loss_fn(outputs, tag_ids)
-            loss.backward()
-            optimizer.step()
-            total_train_loss += loss.item()
-
-        # Validation Phase
-        model.eval()
-        total_val_loss = 0
-        all_predictions = []
-        all_tags = []
-        with torch.no_grad():
-            for token_ids, tag_ids in val_loader:
-                outputs = model(token_ids)  # (batch_size, seq_len, tagset_size)
-                outputs = outputs.view(-1, outputs.shape[-1])
-                tag_ids = tag_ids.view(-1)
-
-                loss = loss_fn(outputs, tag_ids)
-                total_val_loss += loss.item()
-
-                predictions = outputs.argmax(dim=1)
-                mask = tag_ids != train_dataset.tag_to_index['<PAD>']
-                all_predictions.extend(predictions[mask].tolist())
-                all_tags.extend(tag_ids[mask].tolist())
-
-        # Compute Metrics
-        train_loss = total_train_loss / len(train_loader)
-        val_loss = total_val_loss / len(val_loader)
-        f1 = f1_score(all_tags, all_predictions, average='weighted')
-
-        print(f'Epoch {epoch+1} | train_loss = {train_loss:.3f} | val_loss = {val_loss:.3f} | f1 = {f1:.3f}')
-
 # Main Function
 def main(training_file, testing_file, output_file):
-    config = get_config()
-
-    # Load and split data
+   # Load and split data
     train_df = pd.read_csv(training_file)
     train_df, val_df = split_data(train_df, val_size=0.2)
 
     # Create datasets
     train_dataset = POSDataset(train_df, training=True)
-    val_dataset = POSDataset(val_df, word_to_index=train_dataset.word_to_index, tag_to_index=train_dataset.tag_to_index, training=False)
+    val_dataset = POSDataset(val_df, token_vocab=train_dataset.token_vocab, tag_vocab=train_dataset.tag_vocab, training=False)
 
-    # Create data loaders
-    train_loader, val_loader = get_data_loaders(train_dataset, val_dataset, config["batch_size"], collate_fn)
+    # Create dataloaders
+    embedding_dim = 100
+    hidden_dim = 128
+    batch_size = 32
+    learning_rate = 0.001
+    num_epochs = 30
 
     # Initialize model
-    model = initialize_model(
-        vocab_size=len(train_dataset.word_to_index),
-        tagset_size=len(train_dataset.tag_to_index),
-        embedding_dim=config["embedding_dim"],
-        hidden_dim=config["hidden_dim"]
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=lambda batch: collate_fn(batch, train_dataset))
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=lambda batch: collate_fn(batch, train_dataset))
+
+    # Initialize model
+    model = SeqTagger(
+    vocab_size=len(train_dataset.token_vocab),
+    tagset_size=len(train_dataset.tag_vocab),
+    embedding_dim=embedding_dim,
+    hidden_dim=hidden_dim
     )
+    
+    # Initialize loss function and optimizer
+    loss_fn = nn.CrossEntropyLoss(ignore_index=train_dataset.tag_vocab['<PAD>'])
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    # Define loss function and optimizer
-    loss_fn = nn.CrossEntropyLoss(ignore_index=train_dataset.tag_to_index['<PAD>'])
-    optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
+    # Training Loop
+    for epoch in range(num_epochs):
+        # Training
+        model.train()
+        total_train_loss = 0
+        for token_ids, tag_ids in train_loader:
+            optimizer.zero_grad()
 
-    # Train the model
-    train_model(model, train_loader, val_loader, loss_fn, optimizer, config["num_epochs"], train_dataset)
+            outputs = model(token_ids)  # (batch_size, seq_len, tagset_size)
+
+            loss = loss_fn(outputs.view(-1, outputs.shape[-1]), tag_ids.view(-1))
+            loss.backward()
+            optimizer.step()
+
+            total_train_loss += loss.item()
+
+        # Validation
+        model.eval()
+        total_val_loss = 0
+        all_predictions = []
+        all_tags = []
+
+        with torch.no_grad():
+            outputs = model(token_ids)  # (batch_size, seq_len, tagset_size)
+
+            outputs = outputs.view(-1, outputs.shape[-1])
+            tag_ids = tag_ids.view(-1)
+            loss = loss_fn(outputs, tag_ids)
+            total_val_loss += loss.item()
+
+            predictions = outputs.argmax(dim=1)
+            mask = tag_ids != train_dataset.tag_vocab['<PAD>']
+
+            all_predictions.extend(predictions[mask].tolist())
+            all_tags.extend(tag_ids[mask].tolist())
+
+        # compute train and val loss
+        train_loss = total_train_loss / len(train_loader)
+        val_loss = total_val_loss / len(val_loader)
+
+        # Calculate F1 score
+        f1 = f1_score(all_tags, all_predictions, average='weighted')
+
+        print(f'{epoch = } | train_loss = {train_loss:.3f} | val_loss = {val_loss:.3f} | f1 = {f1:.3f}')
+
+        # Testing phase
+        test_df = pd.read_csv(testing_file)
+        test_dataset = POSDataset(test_df, token_vocab=train_dataset.token_vocab, tag_vocab=train_dataset.tag_vocab, training=False)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=lambda batch: collate_fn(batch, train_dataset))
+
+        model.eval()
+        test_predictions = []
+        with torch.no_grad():
+            for batch in test_loader:
+                # Since we only care about tokens during testing, extract accordingly
+                if isinstance(batch, tuple):
+                    token_ids = batch[0]  # Ignore tag_ids since they will be None
+                else:
+                    token_ids = batch
+
+                outputs = model(token_ids)
+                predictions = outputs.argmax(dim=2)  # Get predicted tag indices (batch_size, seq_len)
+
+                # Convert predictions to tag names using tag_vocab (inverse mapping)
+                for i, pred_seq in enumerate(predictions):
+                    pred_tags = [train_dataset.tag_vocab_inv[idx] for idx in pred_seq.tolist()[:len(token_ids[i])]]
+                    test_predictions.append(' '.join(pred_tags))
+
+        # Save predictions with IDs to the output file
+        with open(output_file, 'w') as f:
+            f.write("ID,IOB Slot tags\n")
+            for idx, tags in zip(test_df['ID'], test_predictions):
+                f.write(f"{idx},{tags}\n")
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
