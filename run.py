@@ -46,7 +46,7 @@ def main(training_file, testing_file, output_file):
     hidden_dim = 128
     batch_size = 32
     learning_rate = 0.001
-    num_epochs = 30
+    num_epochs = 5
 
     # Initialize model
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=lambda batch: collate_fn(batch, train_dataset))
@@ -59,7 +59,7 @@ def main(training_file, testing_file, output_file):
     embedding_dim=embedding_dim,
     hidden_dim=hidden_dim
     )
-    
+
     # Initialize loss function and optimizer
     loss_fn = nn.CrossEntropyLoss(ignore_index=train_dataset.tag_vocab['<PAD>'])
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -118,7 +118,7 @@ def main(training_file, testing_file, output_file):
         test_predictions = []
         with torch.no_grad():
             for batch in test_loader:
-                # Since we only care about tokens during testing, extract accordingly
+                # Extract token_ids
                 if isinstance(batch, tuple):
                     token_ids = batch[0]  # Ignore tag_ids since they will be None
                 else:
@@ -129,7 +129,11 @@ def main(training_file, testing_file, output_file):
 
                 # Convert predictions to tag names using tag_vocab (inverse mapping)
                 for i, pred_seq in enumerate(predictions):
-                    pred_tags = [train_dataset.tag_vocab_inv[idx] for idx in pred_seq.tolist()[:len(token_ids[i])]]
+                    # Get the length of the input sequence (non-padding tokens)
+                    input_length = (token_ids[i] != train_dataset.token_vocab['<PAD>']).sum().item()
+                    
+                    # Trim predictions to match input length
+                    pred_tags = [train_dataset.tag_vocab_inv[idx] for idx in pred_seq.tolist()[:input_length]]
                     test_predictions.append(' '.join(pred_tags))
 
         # Save predictions with IDs to the output file
@@ -137,6 +141,7 @@ def main(training_file, testing_file, output_file):
             f.write("ID,IOB Slot tags\n")
             for idx, tags in zip(test_df['ID'], test_predictions):
                 f.write(f"{idx},{tags}\n")
+
 
 
 if __name__ == "__main__":
