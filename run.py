@@ -6,6 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 import pandas as pd
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from sklearn.model_selection import train_test_split
 import sys
@@ -94,16 +95,25 @@ class SeqTagger(nn.Module):
 
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         self.bilstm = nn.LSTM(
-            embedding_dim, hidden_dim, batch_first=True, bidirectional=True, 
-            num_layers=num_layers, dropout=dropout if num_layers > 1 else 0
+            embedding_dim, hidden_dim, num_layers=num_layers, bidirectional=True, batch_first=True, dropout=dropout
         )
-        self.fc = nn.Linear(hidden_dim * 2, tagset_size)  # Multiply hidden_dim by 2 due to bidirectional LSTM
-        self.dropout = nn.Dropout(p=dropout)  # Optional additional dropout layer
+        self.attention = nn.Linear(hidden_dim * 2, 1)  # Linear layer to compute attention scores
+        self.fc = nn.Linear(hidden_dim * 2, tagset_size)  # Fully connected layer for tag prediction
 
     def forward(self, token_ids):
-        embeddings = self.dropout(self.embedding(token_ids))  # Applying dropout to embeddings
-        rnn_out, _ = self.bilstm(embeddings)
-        outputs = self.fc(rnn_out)
+        embeddings = self.embedding(token_ids)  # (batch_size, seq_len, embedding_dim)
+        rnn_out, _ = self.bilstm(embeddings)  # (batch_size, seq_len, hidden_dim * 2)
+
+        # Compute attention scores for each token's output in the sequence
+        attn_scores = torch.tanh(self.attention(rnn_out))  # (batch_size, seq_len, 1)
+        attn_weights = torch.softmax(attn_scores, dim=1)  # (batch_size, seq_len, 1)
+
+        # Apply the attention weights to the BiLSTM output
+        weighted_rnn_out = attn_weights * rnn_out  # Element-wise multiplication (batch_size, seq_len, hidden_dim * 2)
+
+        # Pass through the fully connected layer for per-token predictions
+        outputs = self.fc(weighted_rnn_out)  # (batch_size, seq_len, tagset_size)
+
         return outputs
 
 def main(train_file, test_file, output_file):
@@ -139,17 +149,16 @@ def main(train_file, test_file, output_file):
         tagset_size=len(train_dataset.tag_vocab),
         embedding_dim=100,
         hidden_dim=128,
-        num_layers=2,
-        dropout=0.1
+        num_layers=1,
+        dropout=0.0
     )
-
 
     # Initialize loss function and optimizer
     loss_fn = nn.CrossEntropyLoss(ignore_index=train_dataset.tag_vocab['<PAD>'])
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     # Training Loop
-    for epoch in range(20):
+    for epoch in range(34):
         # Training phase
         model.train()
         total_train_loss = 0
