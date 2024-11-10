@@ -4,20 +4,6 @@ import pandas as pd
 
 class POSDataset(Dataset):
     def __init__(self, dataframe, token_vocab=None, tag_vocab=None, training=True):
-        """
-        Initializes the dataset object for slot tagging of natural language utterances.
-        Args:
-            dataframe (pd.DataFrame): The dataframe containing the dataset with columns 'utterances' and 'IOB Slot tags'.
-            training (bool): Flag indicating whether the object is being initialized in training mode.
-            token_vocab (dict, optional): Predefined token vocabulary mapping tokens to indices. Required if not in training mode.
-            tag_vocab (dict, optional): Predefined tag vocabulary mapping tags to indices. Required if not in training mode.
-        Attributes:
-            self.dataframe (pd.DataFrame): The dataframe containing the dataset.
-            self.token_vocab (dict): The vocabulary mapping tokens to indices. Built from training data if in training mode.
-            self.tag_vocab (dict): The vocabulary mapping tags to indices. Built from training data if in training mode.
-            self.corpus_token_ids (list): List of PyTorch tensors containing token indices for each utterance.
-            self.corpus_tag_ids (list): List of PyTorch tensors containing tag indices for each utterance.
-        """
         # Store the dataframe
         self.dataframe = dataframe
 

@@ -1,77 +1,160 @@
-import pandas as pd
 import torch
-import sys
-from seq_tagger import SeqTagger
-from pos_dataset import POSDataset
-from sklearn.model_selection import train_test_split
+import numpy as np
+import random
+from sklearn.metrics import f1_score
+from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
-from torch.utils.data import DataLoader
+import pandas as pd
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.metrics import f1_score
+from sklearn.model_selection import train_test_split
+import sys
 
-# collate token_ids and tag_ids to make mini-batches
-def collate_fn(batch, train_dataset):
-    # Separate sentences and tags
-    token_ids = [item[0] for item in batch]
-    tag_ids = [item[1] for item in batch if item[1] is not None]  # Only keep non-None tag_ids
+# Function to set a random seed for reproducibility
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
-    # Pad sequences for token_ids
-    sentences_padded = pad_sequence(token_ids, batch_first=True, padding_value=train_dataset.token_vocab['<PAD>'])
+# define dataset
+class POSDataset(Dataset):
+    def __init__(self, tokens_list, tags_list=None, token_vocab=None, tag_vocab=None, training=True):
+        # Tokenize the tokens and split tags if they are strings
+        if isinstance(tokens_list[0], str):
+            tokens_list = [tokens.split() for tokens in tokens_list]
+        
+        if tags_list is not None and isinstance(tags_list[0], str):
+            tags_list = [tags.split() for tags in tags_list]
+        else:
+            tags_list = None
+
+        # Create vocabularies if training and tags_list is available
+        if training:
+            self.token_vocab = {'<PAD>': 0, '<UNK>': 1}
+            self.tag_vocab = {'<PAD>': 0}
+
+            # Build vocab from training data
+            for tokens in tokens_list:
+                for token in tokens:
+                    if token not in self.token_vocab:
+                        self.token_vocab[token] = len(self.token_vocab)
+            if tags_list is not None:
+                for tags in tags_list:
+                    for tag in tags:
+                        if tag not in self.tag_vocab:
+                            self.tag_vocab[tag] = len(self.tag_vocab)
+        else:
+            assert token_vocab is not None and tag_vocab is not None
+            self.token_vocab = token_vocab
+            self.tag_vocab = tag_vocab
+        
+        # Create inverse mapping for tags (common for both training and non-training scenarios)
+        self.tag_vocab_inv = {idx: tag for tag, idx in self.tag_vocab.items()}
+
+        # Convert tokens and tags to integer IDs during initialization
+        self.corpus_token_ids = []
+        self.corpus_tag_ids = []
+        for i, tokens in enumerate(tokens_list):
+            token_ids = [self.token_vocab.get(token, self.token_vocab['<UNK>']) for token in tokens]
+            self.corpus_token_ids.append(torch.tensor(token_ids))
+            if tags_list is not None:
+                tag_ids = [self.tag_vocab[tag] for tag in tags_list[i]]
+                self.corpus_tag_ids.append(torch.tensor(tag_ids))
+            else:
+                self.corpus_tag_ids.append(None)  # Placeholder for test set where tags are not available
+
+    def __len__(self):
+        return len(self.corpus_token_ids)
+
+    def __getitem__(self, idx):
+        return self.corpus_token_ids[idx], self.corpus_tag_ids[idx]
     
-    # Handle tags padding only if tag_ids are present
+def collate_fn(batch):
+    # Predefined padding value (assumed to be 0 for both tokens and tags)
+    token_pad_value = 0
+    tag_pad_value = 0
+
+    # batch: [(token_ids, tag_ids), (token_ids, tag_ids), ...]
+    # Separate tokens and tags
+    token_ids = [item[0] for item in batch]
+    tag_ids = [item[1] for item in batch if item[1] is not None]  # Exclude None for test set
+
+    # Pad sequences
+    sentences_padded = pad_sequence(token_ids, batch_first=True, padding_value=token_pad_value)
     if tag_ids:
-        tags_padded = pad_sequence(tag_ids, batch_first=True, padding_value=train_dataset.tag_vocab['<PAD>'])
+        tags_padded = pad_sequence(tag_ids, batch_first=True, padding_value=tag_pad_value)
     else:
-        tags_padded = None  # No tags for test data
+        tags_padded = None  # Handle the case for the test dataset
 
     return sentences_padded, tags_padded
 
-# Function to Split Data
-def split_data(train_data, val_size=0.2):
-    return train_test_split(train_data, test_size=val_size, random_state=12, shuffle=True)
+class SeqTagger(nn.Module):
+    def __init__(self, vocab_size, tagset_size, embedding_dim, hidden_dim, num_layers, dropout):
+        super().__init__()
 
-# Main Function
-def main(training_file, testing_file, output_file):
-   # Load and split data
-    train_df = pd.read_csv(training_file)
-    train_df, val_df = split_data(train_df, val_size=0.2)
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.bilstm = nn.LSTM(
+            embedding_dim, hidden_dim, batch_first=True, bidirectional=True, 
+            num_layers=num_layers, dropout=dropout if num_layers > 1 else 0
+        )
+        self.fc = nn.Linear(hidden_dim * 2, tagset_size)  # Multiply hidden_dim by 2 due to bidirectional LSTM
+        self.dropout = nn.Dropout(p=dropout)  # Optional additional dropout layer
+
+    def forward(self, token_ids):
+        embeddings = self.dropout(self.embedding(token_ids))  # Applying dropout to embeddings
+        rnn_out, _ = self.bilstm(embeddings)
+        outputs = self.fc(rnn_out)
+        return outputs
+
+def main(train_file, test_file, output_file):
+    # Set seed for reproducibility
+    set_seed(10)
+
+    # Load and split data into train and validation sets
+    data = pd.read_csv(train_file)
+    tokens_list = data['utterances'].tolist()
+    tags_list = data['IOB Slot tags'].tolist()
+
+    # Split data (80% training, 20% validation split)
+    tokens_train, tokens_val, tags_train, tags_val = train_test_split(tokens_list, tags_list, test_size=0.2, random_state=42)
 
     # Create datasets
-    train_dataset = POSDataset(train_df, training=True)
-    val_dataset = POSDataset(val_df, token_vocab=train_dataset.token_vocab, tag_vocab=train_dataset.tag_vocab, training=False)
+    train_dataset = POSDataset(tokens_train, tags_train, training=True)
+    val_dataset = POSDataset(tokens_val, tags_val, token_vocab=train_dataset.token_vocab, tag_vocab=train_dataset.tag_vocab, training=False)
+    test_dataset = POSDataset(pd.read_csv(test_file)['utterances'].tolist(), token_vocab=train_dataset.token_vocab, tag_vocab=train_dataset.tag_vocab, training=False)
+
+    # Display dataset size for verification
+    print(f"Training set size: {len(train_dataset)}")
+    print(f"Validation set size: {len(val_dataset)}")
+    print(f"Test set size: {len(test_dataset)}")
 
     # Create dataloaders
-    embedding_dim = 100
-    hidden_dim = 128
-    batch_size = 32
-    learning_rate = 0.001
-    num_epochs = 5
-
-    # Initialize model
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=lambda batch: collate_fn(batch, train_dataset))
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, collate_fn=lambda batch: collate_fn(batch, train_dataset))
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, collate_fn=collate_fn)
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, collate_fn=collate_fn)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False, collate_fn=collate_fn)
 
     # Initialize model
     model = SeqTagger(
-    vocab_size=len(train_dataset.token_vocab),
-    tagset_size=len(train_dataset.tag_vocab),
-    embedding_dim=embedding_dim,
-    hidden_dim=hidden_dim
+        vocab_size=len(train_dataset.token_vocab),
+        tagset_size=len(train_dataset.tag_vocab),
+        embedding_dim=100,
+        hidden_dim=128,
+        num_layers=2,
+        dropout=0.1
     )
+
 
     # Initialize loss function and optimizer
     loss_fn = nn.CrossEntropyLoss(ignore_index=train_dataset.tag_vocab['<PAD>'])
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     # Training Loop
-    for epoch in range(num_epochs):
-        # Training
+    for epoch in range(20):
+        # Training phase
         model.train()
         total_train_loss = 0
         for token_ids, tag_ids in train_loader:
             optimizer.zero_grad()
-
             outputs = model(token_ids)  # (batch_size, seq_len, tagset_size)
 
             loss = loss_fn(outputs.view(-1, outputs.shape[-1]), tag_ids.view(-1))
@@ -80,77 +163,74 @@ def main(training_file, testing_file, output_file):
 
             total_train_loss += loss.item()
 
-        # Validation
+        # Validation phase
         model.eval()
         total_val_loss = 0
         all_predictions = []
         all_tags = []
 
         with torch.no_grad():
-            outputs = model(token_ids)  # (batch_size, seq_len, tagset_size)
+            for token_ids, tag_ids in val_loader:
+                outputs = model(token_ids)  # (batch_size, seq_len, tagset_size)
+                outputs = outputs.view(-1, outputs.shape[-1])
+                tag_ids = tag_ids.view(-1)
 
-            outputs = outputs.view(-1, outputs.shape[-1])
-            tag_ids = tag_ids.view(-1)
-            loss = loss_fn(outputs, tag_ids)
-            total_val_loss += loss.item()
+                loss = loss_fn(outputs, tag_ids)
+                total_val_loss += loss.item()
 
-            predictions = outputs.argmax(dim=1)
-            mask = tag_ids != train_dataset.tag_vocab['<PAD>']
+                predictions = outputs.argmax(dim=1)
+                mask = tag_ids != train_dataset.tag_vocab['<PAD>']  # Masking out padding tokens
 
-            all_predictions.extend(predictions[mask].tolist())
-            all_tags.extend(tag_ids[mask].tolist())
+                all_predictions.extend(predictions[mask].tolist())
+                all_tags.extend(tag_ids[mask].tolist())
 
-        # compute train and val loss
+        # Compute train and validation loss
         train_loss = total_train_loss / len(train_loader)
         val_loss = total_val_loss / len(val_loader)
 
         # Calculate F1 score
         f1 = f1_score(all_tags, all_predictions, average='weighted')
 
-        print(f'{epoch = } | train_loss = {train_loss:.3f} | val_loss = {val_loss:.3f} | f1 = {f1:.3f}')
+        print(f'Epoch {epoch + 1} | train_loss = {train_loss:.3f} | val_loss = {val_loss:.3f} | f1 = {f1:.3f}')
 
-        # Testing phase
-        test_df = pd.read_csv(testing_file)
-        test_dataset = POSDataset(test_df, token_vocab=train_dataset.token_vocab, tag_vocab=train_dataset.tag_vocab, training=False)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=lambda batch: collate_fn(batch, train_dataset))
+    # Testing phase
+    print(f'\nTesting model on {test_file} and outputting to {output_file}\n')
 
-        model.eval()
-        test_predictions = []
-        with torch.no_grad():
-            for batch in test_loader:
-                # Extract token_ids
-                if isinstance(batch, tuple):
-                    token_ids = batch[0]  # Ignore tag_ids since they will be None
-                else:
-                    token_ids = batch
+    model.eval()
+    predicted_tags = []
 
-                outputs = model(token_ids)
-                predictions = outputs.argmax(dim=2)  # Get predicted tag indices (batch_size, seq_len)
+    with torch.no_grad():
+        for token_ids, _ in test_loader:  # Note: test_loader only contains token_ids
+            # Get model predictions
+            outputs = model(token_ids)  # (batch_size, seq_len, tagset_size)
+            predictions = outputs.argmax(dim=-1)  # Get the predicted indices for the tags
 
-                # Convert predictions to tag names using tag_vocab (inverse mapping)
-                for i, pred_seq in enumerate(predictions):
-                    # Get the length of the input sequence (non-padding tokens)
-                    input_length = (token_ids[i] != train_dataset.token_vocab['<PAD>']).sum().item()
-                    
-                    # Trim predictions to match input length
-                    pred_tags = [train_dataset.tag_vocab_inv[idx] for idx in pred_seq.tolist()[:input_length]]
-                    test_predictions.append(' '.join(pred_tags))
+            # Convert predictions to tags using tag_vocab_inv (defined in POSDataset)
+            for tokens, preds in zip(token_ids, predictions):
+                # Convert predicted indices to tag strings
+                predicted_seq = [train_dataset.tag_vocab_inv[idx.item()] for idx in preds]
 
-        # Save predictions with IDs to the output file
-        with open(output_file, 'w') as f:
-            f.write("ID,IOB Slot tags\n")
-            for idx, tags in zip(test_df['ID'], test_predictions):
-                f.write(f"{idx},{tags}\n")
+                # Ensure the predicted sequence length matches the input sequence length
+                input_length = tokens.ne(0).sum().item()  # Count non-padding tokens
+                predicted_seq = predicted_seq[:input_length]  # Trim to match input length
 
+                # Append to predictions as a space-separated string
+                predicted_tags.append(' '.join(predicted_seq))
 
+    # Save predictions to CSV
+    df = pd.DataFrame({
+        'ID': range(1, len(predicted_tags) + 1),  # Incremental IDs starting from 1
+        'IOB Slot tags': predicted_tags
+    })
+    df.to_csv(output_file, index=False)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     if len(sys.argv) != 4:
-        print("Usage: python run.py <train_data> <test_data> <output_file>")
+        print("Usage: python run.py <train_file> <test_file> <output_file>")
         sys.exit(1)
-    
-    arg1 = sys.argv[1]
-    arg2 = sys.argv[2]
-    arg3 = sys.argv[3]
-    
-    main(arg1, arg2, arg3)
+
+    train_file = sys.argv[1]
+    test_file = sys.argv[2]
+    output_file = sys.argv[3]
+
+    main(train_file, test_file, output_file)
