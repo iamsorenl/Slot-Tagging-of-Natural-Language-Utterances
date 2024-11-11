@@ -10,6 +10,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from sklearn.model_selection import train_test_split
 import sys
+import gensim.downloader as api
 
 # Function to set a random seed for reproducibility
 def set_seed(seed):
@@ -89,11 +90,27 @@ def collate_fn(batch):
 
     return sentences_padded, tags_padded
 
-class SeqTagger(nn.Module):
-    def __init__(self, vocab_size, tagset_size, embedding_dim, hidden_dim, num_layers, dropout):
-        super().__init__()
+def get_embedding_matrix(token_vocab, embedding_dim=100, glove_model_name="glove-wiki-gigaword-100"):
+    # Load the GloVe model from gensim
+    print(f"Loading GloVe model: {glove_model_name}")
+    glove_model = api.load(glove_model_name)
+    
+    # Create the embedding matrix
+    embedding_matrix = torch.zeros((len(token_vocab), embedding_dim))
+    for word, idx in token_vocab.items():
+        if word in glove_model:
+            embedding_matrix[idx] = torch.tensor(glove_model[word])
+        else:
+            embedding_matrix[idx] = torch.randn(embedding_dim)  # Random initialization for unknown words
+    return embedding_matrix
 
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+class SeqTagger(nn.Module):
+    def __init__(self, vocab_size, tagset_size, embedding_dim, hidden_dim, num_layers, dropout, embedding_matrix=None):
+        super().__init__()
+        if embedding_matrix is not None:
+            self.embedding = nn.Embedding.from_pretrained(embedding_matrix, freeze=False)
+        else:
+            self.embedding = nn.Embedding(vocab_size, embedding_dim)
         self.bilstm = nn.LSTM(
             embedding_dim, hidden_dim, num_layers=num_layers, bidirectional=True, batch_first=True, dropout=dropout
         )
@@ -143,22 +160,26 @@ def main(train_file, test_file, output_file):
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, collate_fn=collate_fn)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False, collate_fn=collate_fn)
 
+    # Get embedding matrix
+    embedding_matrix = get_embedding_matrix(train_dataset.token_vocab, embedding_dim=100)
+
     # Initialize model
     model = SeqTagger(
         vocab_size=len(train_dataset.token_vocab),
         tagset_size=len(train_dataset.tag_vocab),
         embedding_dim=100,
         hidden_dim=128,
-        num_layers=2,
-        dropout=0.01
+        num_layers=1,
+        dropout=0.0,
+        embedding_matrix=embedding_matrix
     )
 
     # Initialize loss function and optimizer
     loss_fn = nn.CrossEntropyLoss(ignore_index=train_dataset.tag_vocab['<PAD>'])
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     # Training Loop
-    for epoch in range(10):
+    for epoch in range(40):
         # Training phase
         model.train()
         total_train_loss = 0
