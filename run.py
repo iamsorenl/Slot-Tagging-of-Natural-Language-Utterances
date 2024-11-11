@@ -1,7 +1,8 @@
 import torch
 import numpy as np
 import random
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score as sklearn_f1_score
+from seqeval.metrics import f1_score as seqeval_f1_score, classification_report
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 import pandas as pd
@@ -18,10 +19,10 @@ def set_seed(seed):
     np.random.seed(seed)
     torch.manual_seed(seed)
 
-# define dataset
+# Define dataset class
 class POSDataset(Dataset):
     def __init__(self, tokens_list, tags_list=None, token_vocab=None, tag_vocab=None, training=True):
-        # Tokenize the tokens and split tags if they are strings
+        # Tokenize and create vocabularies...
         if isinstance(tokens_list[0], str):
             tokens_list = [tokens.split() for tokens in tokens_list]
         
@@ -63,14 +64,15 @@ class POSDataset(Dataset):
                 tag_ids = [self.tag_vocab[tag] for tag in tags_list[i]]
                 self.corpus_tag_ids.append(torch.tensor(tag_ids))
             else:
-                self.corpus_tag_ids.append(None)  # Placeholder for test set where tags are not available
+                self.corpus_tag_ids.append(None)
 
     def __len__(self):
         return len(self.corpus_token_ids)
 
     def __getitem__(self, idx):
         return self.corpus_token_ids[idx], self.corpus_tag_ids[idx]
-    
+
+# Custom collate function to pad sequences
 def collate_fn(batch):
     # Predefined padding value (assumed to be 0 for both tokens and tags)
     token_pad_value = 0
@@ -79,17 +81,15 @@ def collate_fn(batch):
     # batch: [(token_ids, tag_ids), (token_ids, tag_ids), ...]
     # Separate tokens and tags
     token_ids = [item[0] for item in batch]
-    tag_ids = [item[1] for item in batch if item[1] is not None]  # Exclude None for test set
-
-    # Pad sequences
+    tag_ids = [item[1] for item in batch if item[1] is not None]
     sentences_padded = pad_sequence(token_ids, batch_first=True, padding_value=token_pad_value)
     if tag_ids:
         tags_padded = pad_sequence(tag_ids, batch_first=True, padding_value=tag_pad_value)
     else:
-        tags_padded = None  # Handle the case for the test dataset
-
+        tags_padded = None
     return sentences_padded, tags_padded
 
+# Function to get the embedding matrix
 def get_embedding_matrix(token_vocab, embedding_dim=100, glove_model_name="glove-wiki-gigaword-100"):
     # Load the GloVe model from gensim
     print(f"Loading GloVe model: {glove_model_name}")
@@ -101,9 +101,10 @@ def get_embedding_matrix(token_vocab, embedding_dim=100, glove_model_name="glove
         if word in glove_model:
             embedding_matrix[idx] = torch.tensor(glove_model[word])
         else:
-            embedding_matrix[idx] = torch.randn(embedding_dim)  # Random initialization for unknown words
+            embedding_matrix[idx] = torch.randn(embedding_dim)
     return embedding_matrix
 
+# Define the BiLSTM model with attention
 class SeqTagger(nn.Module):
     def __init__(self, vocab_size, tagset_size, embedding_dim, hidden_dim, num_layers, dropout, embedding_matrix=None):
         super().__init__()
@@ -114,24 +115,28 @@ class SeqTagger(nn.Module):
         self.bilstm = nn.LSTM(
             embedding_dim, hidden_dim, num_layers=num_layers, bidirectional=True, batch_first=True, dropout=dropout
         )
-        self.attention = nn.Linear(hidden_dim * 2, 1)  # Linear layer to compute attention scores
-        self.fc = nn.Linear(hidden_dim * 2, tagset_size)  # Fully connected layer for tag prediction
+        self.attention = nn.Linear(hidden_dim * 2, 1)
+        self.fc = nn.Linear(hidden_dim * 2, tagset_size)
 
     def forward(self, token_ids):
-        embeddings = self.embedding(token_ids)  # (batch_size, seq_len, embedding_dim)
-        rnn_out, _ = self.bilstm(embeddings)  # (batch_size, seq_len, hidden_dim * 2)
-
-        # Compute attention scores for each token's output in the sequence
-        attn_scores = torch.tanh(self.attention(rnn_out))  # (batch_size, seq_len, 1)
-        attn_weights = torch.softmax(attn_scores, dim=1)  # (batch_size, seq_len, 1)
-
-        # Apply the attention weights to the BiLSTM output
-        weighted_rnn_out = attn_weights * rnn_out  # Element-wise multiplication (batch_size, seq_len, hidden_dim * 2)
-
-        # Pass through the fully connected layer for per-token predictions
-        outputs = self.fc(weighted_rnn_out)  # (batch_size, seq_len, tagset_size)
-
+        embeddings = self.embedding(token_ids)
+        rnn_out, _ = self.bilstm(embeddings)
+        attn_scores = torch.tanh(self.attention(rnn_out))
+        attn_weights = torch.softmax(attn_scores, dim=1)
+        weighted_rnn_out = attn_weights * rnn_out
+        outputs = self.fc(weighted_rnn_out)
         return outputs
+
+# Helper function to convert tags from custom B_ or I_ format to B- or I- format
+def convert_tags_to_iob2(tags):
+    """Convert tags from custom B_ or I_ format to B- or I- format."""
+    converted_tags = []
+    for tag in tags:
+        if tag.startswith('B_') or tag.startswith('I_'):
+            converted_tags.append(tag.replace('_', '-'))
+        else:
+            converted_tags.append(tag)  # Keep 'O' or any other tag as-is
+    return converted_tags
 
 def main(train_file, test_file, output_file):
     # Set seed for reproducibility
@@ -149,13 +154,6 @@ def main(train_file, test_file, output_file):
     train_dataset = POSDataset(tokens_train, tags_train, training=True)
     val_dataset = POSDataset(tokens_val, tags_val, token_vocab=train_dataset.token_vocab, tag_vocab=train_dataset.tag_vocab, training=False)
     test_dataset = POSDataset(pd.read_csv(test_file)['utterances'].tolist(), token_vocab=train_dataset.token_vocab, tag_vocab=train_dataset.tag_vocab, training=False)
-
-    # Display dataset size for verification
-    print(f"Training set size: {len(train_dataset)}")
-    print(f"Validation set size: {len(val_dataset)}")
-    print(f"Test set size: {len(test_dataset)}")
-
-    # Create dataloaders
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, collate_fn=collate_fn)
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, collate_fn=collate_fn)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False, collate_fn=collate_fn)
@@ -185,8 +183,7 @@ def main(train_file, test_file, output_file):
         total_train_loss = 0
         for token_ids, tag_ids in train_loader:
             optimizer.zero_grad()
-            outputs = model(token_ids)  # (batch_size, seq_len, tagset_size)
-
+            outputs = model(token_ids)
             loss = loss_fn(outputs.view(-1, outputs.shape[-1]), tag_ids.view(-1))
             loss.backward()
             optimizer.step()
@@ -201,7 +198,7 @@ def main(train_file, test_file, output_file):
 
         with torch.no_grad():
             for token_ids, tag_ids in val_loader:
-                outputs = model(token_ids)  # (batch_size, seq_len, tagset_size)
+                outputs = model(token_ids)
                 outputs = outputs.view(-1, outputs.shape[-1])
                 tag_ids = tag_ids.view(-1)
 
@@ -209,42 +206,60 @@ def main(train_file, test_file, output_file):
                 total_val_loss += loss.item()
 
                 predictions = outputs.argmax(dim=1)
-                mask = tag_ids != train_dataset.tag_vocab['<PAD>']  # Masking out padding tokens
-
+                mask = tag_ids != train_dataset.tag_vocab['<PAD>']
                 all_predictions.extend(predictions[mask].tolist())
                 all_tags.extend(tag_ids[mask].tolist())
 
-        # Compute train and validation loss
-        train_loss = total_train_loss / len(train_loader)
-        val_loss = total_val_loss / len(val_loader)
+        # Convert indices back to labels
+        all_predictions_labels = [train_dataset.tag_vocab_inv[idx] for idx in all_predictions]
+        all_tags_labels = [train_dataset.tag_vocab_inv[idx] for idx in all_tags]
 
-        # Calculate F1 score
-        f1 = f1_score(all_tags, all_predictions, average='weighted')
+        # Function to convert tags from custom format to IOB2 standard for seqeval
+        def convert_tags_to_iob2(tags):
+            converted_tags = []
+            for tag in tags:
+                if tag.startswith('B_') or tag.startswith('I_'):
+                    converted_tags.append(tag.replace('_', '-'))
+                else:
+                    converted_tags.append(tag)
+            return converted_tags
 
-        print(f'Epoch {epoch + 1} | train_loss = {train_loss:.3f} | val_loss = {val_loss:.3f} | f1 = {f1:.3f}')
+        # Apply conversion
+        all_predictions_labels = convert_tags_to_iob2(all_predictions_labels)
+        all_tags_labels = convert_tags_to_iob2(all_tags_labels)
 
-    # Testing phase
-    print(f'\nTesting model on {test_file} and outputting to {output_file}\n')
+        # Group tags into sequences for seqeval
+        grouped_predictions = []
+        grouped_tags = []
+        current_pred = []
+        current_tag = []
+        for i, (pred, tag) in enumerate(zip(all_predictions_labels, all_tags_labels)):
+            if pred != '<PAD>':
+                current_pred.append(pred)
+                current_tag.append(tag)
+            if i == len(all_predictions_labels) - 1 or all_predictions_labels[i + 1] == '<PAD>':
+                grouped_predictions.append(current_pred)
+                grouped_tags.append(current_tag)
+                current_pred = []
+                current_tag = []
+
+        # Calculate F1 scores using both sklearn and seqeval
+        f1_sklearn = sklearn_f1_score(all_tags, all_predictions, average='weighted')
+        f1_seqeval = seqeval_f1_score(grouped_tags, grouped_predictions)
+        print(f'Epoch {epoch + 1} | train_loss = {total_train_loss / len(train_loader):.3f} | val_loss = {total_val_loss / len(val_loader):.3f} | sklearn F1 = {f1_sklearn:.3f} | seqeval F1 = {f1_seqeval:.3f}')
 
     model.eval()
     predicted_tags = []
 
     with torch.no_grad():
-        for token_ids, _ in test_loader:  # Note: test_loader only contains token_ids
-            # Get model predictions
-            outputs = model(token_ids)  # (batch_size, seq_len, tagset_size)
-            predictions = outputs.argmax(dim=-1)  # Get the predicted indices for the tags
-
-            # Convert predictions to tags using tag_vocab_inv (defined in POSDataset)
+        for token_ids, _ in test_loader:
+            outputs = model(token_ids)
+            predictions = outputs.argmax(dim=-1)
             for tokens, preds in zip(token_ids, predictions):
                 # Convert predicted indices to tag strings
                 predicted_seq = [train_dataset.tag_vocab_inv[idx.item()] for idx in preds]
-
-                # Ensure the predicted sequence length matches the input sequence length
-                input_length = tokens.ne(0).sum().item()  # Count non-padding tokens
-                predicted_seq = predicted_seq[:input_length]  # Trim to match input length
-
-                # Append to predictions as a space-separated string
+                input_length = tokens.ne(0).sum().item()
+                predicted_seq = predicted_seq[:input_length]
                 predicted_tags.append(' '.join(predicted_seq))
 
     # Save predictions to CSV
@@ -264,3 +279,4 @@ if __name__ == '__main__':
     output_file = sys.argv[3]
 
     main(train_file, test_file, output_file)
+
