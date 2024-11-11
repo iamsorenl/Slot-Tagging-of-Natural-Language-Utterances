@@ -172,16 +172,16 @@ def main(train_file, test_file, output_file):
         tagset_size=len(train_dataset.tag_vocab),
         embedding_dim=100,
         hidden_dim=128,
-        num_layers=1,
-        dropout=0.0
+        num_layers=2,
+        dropout=0.01
     )
 
     # Initialize loss function and optimizer
     loss_fn = nn.CrossEntropyLoss(ignore_index=train_dataset.tag_vocab['<PAD>'])
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
 
     # Training Loop
-    for epoch in range(34):
+    for epoch in range(10):
         # Training phase
         model.train()
         total_train_loss = 0
