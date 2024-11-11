@@ -115,6 +115,29 @@ class SeqTagger(nn.Module):
         outputs = self.fc(weighted_rnn_out)  # (batch_size, seq_len, tagset_size)
 
         return outputs
+    
+class LabelSmoothingCrossEntropyLoss(nn.Module):
+    def __init__(self, smoothing=0.1, ignore_index=-100):
+        super(LabelSmoothingCrossEntropyLoss, self).__init__()
+        self.smoothing = smoothing
+        self.ignore_index = ignore_index
+    
+    def forward(self, output, target):
+        # Number of classes (i.e., size of last dimension of output)
+        num_classes = output.size(-1)
+        
+        # Smooth the labels
+        with torch.no_grad():
+            true_dist = torch.zeros_like(output)
+            true_dist.fill_(self.smoothing / (num_classes - 1))
+            true_dist.scatter_(1, target.data.unsqueeze(1), 1.0 - self.smoothing)
+            
+            # Ignore index if specified (padding tokens in your case)
+            if self.ignore_index is not None:
+                true_dist.masked_fill_((target == self.ignore_index).unsqueeze(1), 0)
+        
+        # Calculate cross-entropy loss with smoothed labels
+        return torch.mean(torch.sum(-true_dist * F.log_softmax(output, dim=-1), dim=-1))
 
 def main(train_file, test_file, output_file):
     # Set seed for reproducibility
