@@ -20,7 +20,7 @@ def set_seed(seed):
     torch.manual_seed(seed)
 
 # Define dataset class
-class POSDataset(Dataset):
+class SlotTaggingDataset(Dataset):
     def __init__(self, tokens_list, tags_list=None, token_vocab=None, tag_vocab=None, training=True):
         # Tokenize and create vocabularies...
         if isinstance(tokens_list[0], str):
@@ -151,9 +151,9 @@ def main(train_file, test_file, output_file):
     tokens_train, tokens_val, tags_train, tags_val = train_test_split(tokens_list, tags_list, test_size=0.2, random_state=42)
 
     # Create datasets
-    train_dataset = POSDataset(tokens_train, tags_train, training=True)
-    val_dataset = POSDataset(tokens_val, tags_val, token_vocab=train_dataset.token_vocab, tag_vocab=train_dataset.tag_vocab, training=False)
-    test_dataset = POSDataset(pd.read_csv(test_file)['utterances'].tolist(), token_vocab=train_dataset.token_vocab, tag_vocab=train_dataset.tag_vocab, training=False)
+    train_dataset = SlotTaggingDataset(tokens_train, tags_train, training=True)
+    val_dataset = SlotTaggingDataset(tokens_val, tags_val, token_vocab=train_dataset.token_vocab, tag_vocab=train_dataset.tag_vocab, training=False)
+    test_dataset = SlotTaggingDataset(pd.read_csv(test_file)['utterances'].tolist(), token_vocab=train_dataset.token_vocab, tag_vocab=train_dataset.tag_vocab, training=False)
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, collate_fn=collate_fn)
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, collate_fn=collate_fn)
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False, collate_fn=collate_fn)
@@ -279,4 +279,3 @@ if __name__ == '__main__':
     output_file = sys.argv[3]
 
     main(train_file, test_file, output_file)
-
